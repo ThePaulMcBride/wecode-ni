@@ -1,0 +1,143 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  url          = env("DATABASE_URL")
+  provider     = "mysql"
+  relationMode = "prisma"
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String? @db.Text
+  access_token       String? @db.Text
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String? @db.Text
+  session_state      String?
+  oauth_token_secret String?
+  oauth_token        String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?   @db.Text
+  admin         Boolean?  @default(false)
+  companyId     Int?
+  accounts      Account[]
+  sessions      Session[]
+  Company       Company?  @relation(fields: [companyId], references: [id])
+
+  @@index([companyId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Company {
+  id                   Int     @id @default(autoincrement())
+  name                 String?
+  stripeCustomerId     String? @unique()
+  stripeSubscriptionId String? @unique()
+  subscriptionStatus   String?
+  jobLimit             Int?
+  jobs                 Job[]
+  users                User[]
+}
+
+model Job {
+  id                 Int                 @id @default(autoincrement())
+  applyUrl           String              @db.Text
+  applyUrlIsEmail    Boolean
+  companyTitle       String
+  companyUrl         String
+  createdAt          DateTime            @default(now())
+  deletedAt          DateTime?
+  description        String              @db.Text
+  expires            DateTime?
+  howToApply         String              @db.Text
+  location           String
+  logoUrl            String?
+  publishedAt        DateTime?
+  salaryData         Json?
+  slug               String?             @unique()
+  title              String
+  companyId          Int?
+  pro                Boolean             @default(false)
+  repostCount        Int                 @default(0)
+  Company            Company?            @relation(fields: [companyId], references: [id])
+  applications       Application[]
+  JobTags            JobTag[]
+  JobEmploymentTypes JobEmploymentType[]
+
+  @@index([companyId])
+}
+
+model JobTag {
+  id    Int    @id @default(autoincrement())
+  jobId Int
+  tag   String
+  Job   Job    @relation(fields: [jobId], references: [id])
+
+  @@unique([jobId, tag], name: "jobTag_unique")
+  @@index([jobId])
+}
+
+model JobEmploymentType {
+  id    Int            @id @default(autoincrement())
+  jobId Int
+  type  EmploymentType
+  Job   Job            @relation(fields: [jobId], references: [id])
+
+  @@unique([jobId, type], name: "jobEmploymentType_unique")
+  @@index([jobId])
+}
+
+model Application {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  jobId     Int
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
+}
+
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  CONTRACTOR
+  TEMPORARY
+  INTERN
+  VOLUNTEER
+  PER_DIEM
+  OTHER
+}

@@ -1,0 +1,8 @@
+Sitemap: https://wecodeni.com/sitemap.xml
+
+User-agent: *
+Allow: /*
+
+Disallow: /api/*
+Disallow: /admin/*
+Disallow: /dashboard/*
